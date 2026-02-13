@@ -1,0 +1,49 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "correctness-judge"
+version = "0.2.0"
+description = "LLM-as-judge for correctness evaluation with claim decomposition and VITAL importance-weighted scoring"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    { name = "Zyphra" },
+]
+keywords = ["llm", "evaluation", "correctness", "judge", "claims", "vital", "metrics"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "litellm>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Zyphra/correctness-judge"
+Repository = "https://github.com/Zyphra/correctness-judge"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=24.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/correctness_judge"]
+
+[tool.black]
+line-length = 100
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
