@@ -1,0 +1,373 @@
+"""Meta-evaluation benchmark dataset with human-labeled ground truth.
+
+30 test cases spanning 9 categories across multiple domains, calibrated
+to the correctness-judge scoring thresholds.
+"""
+
+BENCHMARK_CASES = [
+    # =========================================================================
+    # EASY CORRECT (cases 1-4)
+    # =========================================================================
+    {
+        "id": "easy_correct_01",
+        "category": "easy_correct",
+        "difficulty": "easy",
+        "query": "What is the chemical formula for water?",
+        "expected": "The chemical formula for water is H2O.",
+        "actual": "Water has the chemical formula H2O.",
+        "human_verdict": "correct",
+        "human_f1_range": [0.9, 1.0],
+        "notes": "Trivial rephrasing of a simple fact.",
+    },
+    {
+        "id": "easy_correct_02",
+        "category": "easy_correct",
+        "difficulty": "easy",
+        "query": "What is the capital of France?",
+        "expected": "Paris is the capital of France.",
+        "actual": "The capital of France is Paris. It has been the capital since the 10th century and is the largest city in France.",
+        "human_verdict": "correct",
+        "human_f1_range": [0.9, 1.0],
+        "notes": "Actual adds extra true information. Should not penalize.",
+    },
+    {
+        "id": "easy_correct_03",
+        "category": "easy_correct",
+        "difficulty": "easy",
+        "query": "What does the Python len() function return?",
+        "expected": "The len() function returns the number of items in an object, such as the number of characters in a string or elements in a list.",
+        "actual": "Python's len() function returns the number of items in a container. For strings, it returns the character count; for lists and tuples, it returns the element count.",
+        "human_verdict": "correct",
+        "human_f1_range": [0.85, 1.0],
+        "notes": "Semantically equivalent technical explanation with different wording.",
+    },
+    {
+        "id": "easy_correct_04",
+        "category": "easy_correct",
+        "difficulty": "easy",
+        "query": "What is the speed of light in a vacuum?",
+        "expected": "The speed of light in a vacuum is approximately 299,792,458 meters per second.",
+        "actual": "Light travels at approximately 3 x 10^8 m/s in a vacuum, which is exactly 299,792,458 m/s.",
+        "human_verdict": "correct",
+        "human_f1_range": [0.9, 1.0],
+        "notes": "Same value in scientific notation and exact form.",
+    },
+    # =========================================================================
+    # EASY INCORRECT (cases 5-7)
+    # =========================================================================
+    {
+        "id": "easy_incorrect_01",
+        "category": "easy_incorrect",
+        "difficulty": "easy",
+        "query": "What is the capital of Australia?",
+        "expected": "The capital of Australia is Canberra.",
+        "actual": "The capital of Australia is Sydney, which is the largest city in the country.",
+        "human_verdict": "incorrect",
+        "human_f1_range": [0.0, 0.15],
+        "notes": "Classic factual error swapping capital with largest city.",
+    },
+    {
+        "id": "easy_incorrect_02",
+        "category": "easy_incorrect",
+        "difficulty": "easy",
+        "query": "When did World War I end?",
+        "expected": "World War I ended on November 11, 1918, with the signing of the Armistice.",
+        "actual": "World War I ended in 1945 when Germany surrendered to the Allied forces.",
+        "human_verdict": "incorrect",
+        "human_f1_range": [0.0, 0.1],
+        "notes": "Confuses WWI with WWII entirely.",
+    },
+    {
+        "id": "easy_incorrect_03",
+        "category": "easy_incorrect",
+        "difficulty": "easy",
+        "query": "What is the output of print(3 + '2') in Python 3?",
+        "expected": "This raises a TypeError because you cannot add an integer and a string in Python 3.",
+        "actual": "The output is 32, because Python concatenates the integer with the string.",
+        "human_verdict": "incorrect",
+        "human_f1_range": [0.0, 0.1],
+        "notes": "Describes Python 2 behavior instead of Python 3.",
+    },
+    # =========================================================================
+    # HARD PARTIALLY CORRECT (cases 8-12)
+    # =========================================================================
+    {
+        "id": "hard_partial_01",
+        "category": "hard_partially_correct",
+        "difficulty": "hard",
+        "query": "Describe the structure of DNA.",
+        "expected": "DNA is a double helix composed of two antiparallel strands of nucleotides. Each nucleotide contains a deoxyribose sugar, a phosphate group, and one of four nitrogenous bases: adenine (A), thymine (T), guanine (G), or cytosine (C). A pairs with T via two hydrogen bonds, and G pairs with C via three hydrogen bonds. The strands run in a 5' to 3' direction.",
+        "actual": "DNA is a double helix made of two strands of nucleotides. Each nucleotide has a sugar, a phosphate group, and a nitrogenous base (A, T, G, or C). Adenine pairs with thymine and guanine pairs with cytosine. The helix makes one full turn every 10.5 base pairs.",
+        "human_verdict": "partially_correct",
+        "human_f1_range": [0.5, 0.75],
+        "notes": "Right overall structure but omits antiparallel, deoxyribose, hydrogen bond counts, 5'-3' direction.",
+    },
+    {
+        "id": "hard_partial_02",
+        "category": "hard_partially_correct",
+        "difficulty": "hard",
+        "query": "Explain the causes of the French Revolution.",
+        "expected": "The French Revolution was caused by financial crisis due to France's debt from the Seven Years' War and American Revolution, social inequality under the Estates system where the Third Estate bore the tax burden, Enlightenment ideas challenging absolute monarchy, food shortages from poor harvests in 1788, and the weak leadership of King Louis XVI.",
+        "actual": "The French Revolution was caused by France's severe financial crisis from war debts, social inequality in the Estates system, Enlightenment philosophy promoting liberty and democracy, widespread famine, and the extravagant spending of Queen Marie Antoinette at Versailles.",
+        "human_verdict": "partially_correct",
+        "human_f1_range": [0.55, 0.8],
+        "notes": "Gets broad causes right but attributes extravagance to Marie Antoinette instead of mentioning Louis XVI's weak leadership.",
+    },
+    {
+        "id": "hard_partial_03",
+        "category": "hard_partially_correct",
+        "difficulty": "hard",
+        "query": "How does HTTPS work?",
+        "expected": "HTTPS uses TLS (Transport Layer Security) to encrypt HTTP traffic. The client and server perform a TLS handshake: the server presents its X.509 certificate, the client verifies it against trusted certificate authorities, they negotiate a cipher suite, and establish a shared symmetric session key using asymmetric cryptography. All subsequent HTTP data is encrypted with the session key.",
+        "actual": "HTTPS encrypts web traffic using SSL/TLS. When you visit an HTTPS site, your browser and the server perform a handshake where the server sends its digital certificate. The browser checks this certificate is valid, and then they create an encrypted connection. The data is encrypted using public key cryptography throughout the session.",
+        "human_verdict": "partially_correct",
+        "human_f1_range": [0.4, 0.65],
+        "notes": "Subtle error: says public key crypto throughout session (actually symmetric). Misses cipher suite, X.509, CA details.",
+    },
+    {
+        "id": "hard_partial_04",
+        "category": "hard_partially_correct",
+        "difficulty": "medium",
+        "query": "What are the inner planets of the solar system?",
+        "expected": "The four inner planets of the solar system are Mercury, Venus, Earth, and Mars. They are also called terrestrial planets because they have solid rocky surfaces. They are separated from the outer planets by the asteroid belt.",
+        "actual": "The inner planets are Mercury, Venus, Earth, and Mars. These rocky planets are closest to the Sun. Mars is the largest of the inner planets.",
+        "human_verdict": "partially_correct",
+        "human_f1_range": [0.5, 0.7],
+        "notes": "Planet list correct but falsely claims Mars is the largest inner planet (Earth is).",
+    },
+    {
+        "id": "hard_partial_05",
+        "category": "hard_partially_correct",
+        "difficulty": "hard",
+        "query": "Explain how a compiler differs from an interpreter.",
+        "expected": "A compiler translates the entire source code into machine code (or intermediate code) before execution, producing a standalone executable. An interpreter translates and executes source code line by line at runtime, without producing a separate executable file. Compiled programs generally run faster because the translation is done ahead of time. Interpreters provide faster development cycles because there is no separate compilation step. Examples: C and C++ use compilers; Python and Ruby use interpreters.",
+        "actual": "A compiler converts source code into machine code all at once before the program runs, while an interpreter executes code line by line. Compiled programs are faster at runtime. Java uses a compiler to produce bytecode. Python is an interpreted language, though it does compile to bytecode internally. Interpreters are easier to debug because you can see errors immediately.",
+        "human_verdict": "partially_correct",
+        "human_f1_range": [0.55, 0.75],
+        "notes": "Core distinction right but misses standalone executable, faster dev cycle, C/C++/Ruby examples.",
+    },
+    # =========================================================================
+    # HALLUCINATION DETECTION (cases 13-16)
+    # =========================================================================
+    {
+        "id": "hallucination_01",
+        "category": "hallucination_detection",
+        "difficulty": "hard",
+        "query": "What were the key provisions of the Treaty of Versailles?",
+        "expected": "The Treaty of Versailles (1919) required Germany to accept war guilt (Article 231), pay reparations of 132 billion gold marks, limit its army to 100,000 troops, demilitarize the Rhineland, cede Alsace-Lorraine to France, and surrender its overseas colonies. It also established the League of Nations.",
+        "actual": "The Treaty of Versailles (1919) required Germany to accept war guilt, pay massive reparations, limit its military to 100,000 soldiers, demilitarize the Rhineland, return Alsace-Lorraine to France, give up its colonies, and join the League of Nations as a founding member. The treaty was signed at the Hall of Mirrors in the Palace of Versailles.",
+        "human_verdict": "partially_correct",
+        "human_f1_range": [0.5, 0.7],
+        "notes": "Subtle hallucination: Germany was NOT a founding member of the League of Nations.",
+    },
+    {
+        "id": "hallucination_02",
+        "category": "hallucination_detection",
+        "difficulty": "hard",
+        "query": "Describe the process of photosynthesis.",
+        "expected": "Photosynthesis occurs in the chloroplasts of plant cells. In the light-dependent reactions, water is split using light energy, producing oxygen, ATP, and NADPH. In the Calvin cycle (light-independent reactions), CO2 is fixed into glucose using ATP and NADPH. The overall equation is 6CO2 + 6H2O + light energy -> C6H12O6 + 6O2.",
+        "actual": "Photosynthesis takes place in chloroplasts. Light reactions split water to produce oxygen, ATP, and NADPH. The Calvin cycle uses ATP and NADPH to fix CO2 into glucose. The overall equation is 6CO2 + 6H2O -> C6H12O6 + 6O2. The process was first discovered by Jan Baptista van Helmont in 1648 through his famous willow tree experiment, which proved that plants get their mass from water rather than soil.",
+        "human_verdict": "partially_correct",
+        "human_f1_range": [0.6, 0.8],
+        "notes": "Photosynthesis explanation correct but historical claim is misleading (van Helmont's conclusion was incomplete).",
+    },
+    {
+        "id": "hallucination_03",
+        "category": "hallucination_detection",
+        "difficulty": "medium",
+        "query": "Who invented the telephone?",
+        "expected": "Alexander Graham Bell is credited with inventing the telephone. He was awarded the first US patent for it in 1876.",
+        "actual": "Alexander Graham Bell invented the telephone and received the first US patent for it in 1876. Bell demonstrated the device at the Philadelphia Centennial Exhibition, where Emperor Pedro II of Brazil famously exclaimed 'My God, it talks!' Bell's assistant Thomas Watson was on the other end of the first successful call.",
+        "human_verdict": "correct",
+        "human_f1_range": [0.85, 1.0],
+        "notes": "Trap case: extra details are all historically accurate. Tests false-positive hallucination detection.",
+    },
+    {
+        "id": "hallucination_04",
+        "category": "hallucination_detection",
+        "difficulty": "hard",
+        "query": "Explain the Big Bang theory.",
+        "expected": "The Big Bang theory states that the universe began approximately 13.8 billion years ago from an extremely hot, dense singularity. The universe has been expanding ever since. Key evidence includes the cosmic microwave background radiation discovered by Penzias and Wilson in 1965, the observed redshift of distant galaxies (Hubble's law), and the abundance of light elements like hydrogen and helium matching nucleosynthesis predictions.",
+        "actual": "The Big Bang theory proposes that the universe originated about 13.8 billion years ago from a hot, dense state and has been expanding since. Evidence includes the cosmic microwave background radiation, the redshift of galaxies as described by Hubble's law, and the relative abundance of hydrogen and helium. The theory was first proposed by Georges Lemaitre in 1927 and later confirmed when Edwin Hubble observed that galaxies are moving apart at a rate of 67.4 km/s/Mpc, known as the Hubble constant.",
+        "human_verdict": "partially_correct",
+        "human_f1_range": [0.6, 0.8],
+        "notes": "Core theory correct. Omits Penzias/Wilson 1965. Adds Lemaitre (true) and Hubble constant (debated value).",
+    },
+    # =========================================================================
+    # MISSING INFORMATION (cases 17-19)
+    # =========================================================================
+    {
+        "id": "missing_info_01",
+        "category": "missing_information",
+        "difficulty": "medium",
+        "query": "What are the three branches of the US government and their roles?",
+        "expected": "The US government has three branches: the Legislative branch (Congress, consisting of the Senate and House of Representatives) makes laws, the Executive branch (led by the President) enforces laws, and the Judicial branch (led by the Supreme Court) interprets laws and determines their constitutionality.",
+        "actual": "The US government has three branches: the Legislative branch makes laws, the Executive branch enforces laws, and the Judicial branch interprets laws.",
+        "human_verdict": "partially_correct",
+        "human_f1_range": [0.4, 0.65],
+        "notes": "Correct high-level but omits Congress, Senate, House, President, Supreme Court, constitutionality.",
+    },
+    {
+        "id": "missing_info_02",
+        "category": "missing_information",
+        "difficulty": "hard",
+        "query": "Explain how a neural network learns through backpropagation.",
+        "expected": "In backpropagation, the network first performs a forward pass, computing outputs layer by layer. The loss function measures the error between predicted and actual outputs. The algorithm then computes gradients of the loss with respect to each weight using the chain rule of calculus, propagating error signals backward through the network. Weights are then updated using gradient descent: w_new = w_old - learning_rate * gradient. This process repeats over many epochs until the loss converges.",
+        "actual": "Backpropagation works by passing data through the network, calculating the error, and then adjusting the weights to reduce the error. This process is repeated many times until the network learns the correct outputs.",
+        "human_verdict": "partially_correct",
+        "human_f1_range": [0.2, 0.4],
+        "notes": "Only highest-level intuition. Misses forward pass, loss function, chain rule, gradients, gradient descent, learning rate, epochs.",
+    },
+    {
+        "id": "missing_info_03",
+        "category": "missing_information",
+        "difficulty": "medium",
+        "query": "What are the symptoms of Type 2 diabetes?",
+        "expected": "Common symptoms of Type 2 diabetes include increased thirst (polydipsia), frequent urination (polyuria), increased hunger (polyphagia), fatigue, blurred vision, slow-healing wounds, numbness or tingling in hands and feet (neuropathy), and unexplained weight loss. Many people with Type 2 diabetes may be asymptomatic in early stages.",
+        "actual": "Type 2 diabetes symptoms include feeling very thirsty, needing to urinate frequently, feeling tired, and blurred vision. The condition often develops gradually.",
+        "human_verdict": "partially_correct",
+        "human_f1_range": [0.35, 0.55],
+        "notes": "Lists 4 of 8 symptoms. Misses polyphagia, slow-healing wounds, neuropathy, weight loss.",
+    },
+    # =========================================================================
+    # NUMERICAL PRECISION (cases 20-22)
+    # =========================================================================
+    {
+        "id": "numerical_01",
+        "category": "numerical_precision",
+        "difficulty": "medium",
+        "query": "What is the distance from the Earth to the Moon?",
+        "expected": "The average distance from the Earth to the Moon is approximately 384,400 kilometers (238,855 miles).",
+        "actual": "The Earth is about 384,000 km from the Moon, or roughly 239,000 miles.",
+        "human_verdict": "correct",
+        "human_f1_range": [0.8, 1.0],
+        "notes": "Numbers within 0.1-0.06% difference. Well within 5% tolerance.",
+    },
+    {
+        "id": "numerical_02",
+        "category": "numerical_precision",
+        "difficulty": "hard",
+        "query": "What is the population of Tokyo?",
+        "expected": "The population of Tokyo is approximately 13.96 million people in the city proper, and about 37.4 million in the Greater Tokyo Area, making it the most populous metropolitan area in the world.",
+        "actual": "Tokyo has a population of about 14 million in the city and 38 million in the greater metropolitan area. It is the world's largest metropolitan area by population.",
+        "human_verdict": "correct",
+        "human_f1_range": [0.8, 1.0],
+        "notes": "14M vs 13.96M (0.3%) and 38M vs 37.4M (1.6%). Within 5% tolerance.",
+    },
+    {
+        "id": "numerical_03",
+        "category": "numerical_precision",
+        "difficulty": "hard",
+        "query": "What is the boiling point of ethanol?",
+        "expected": "The boiling point of ethanol is 78.37 degrees Celsius (173.1 degrees Fahrenheit) at standard atmospheric pressure.",
+        "actual": "Ethanol boils at 100 degrees Celsius at standard pressure.",
+        "human_verdict": "incorrect",
+        "human_f1_range": [0.0, 0.15],
+        "notes": "Confuses ethanol (78.37 C) with water (100 C). 28% error.",
+    },
+    # =========================================================================
+    # ENTITY CONFUSION (cases 23-25)
+    # =========================================================================
+    {
+        "id": "entity_confusion_01",
+        "category": "entity_confusion",
+        "difficulty": "medium",
+        "query": "Who wrote 'To Kill a Mockingbird' and when was it published?",
+        "expected": "To Kill a Mockingbird was written by Harper Lee and published in 1960.",
+        "actual": "To Kill a Mockingbird was written by Truman Capote and published in 1960.",
+        "human_verdict": "incorrect",
+        "human_f1_range": [0.15, 0.35],
+        "notes": "Swaps Harper Lee with Truman Capote (her real-life childhood friend).",
+    },
+    {
+        "id": "entity_confusion_02",
+        "category": "entity_confusion",
+        "difficulty": "hard",
+        "query": "Describe the discovery of penicillin.",
+        "expected": "Penicillin was discovered by Alexander Fleming in 1928 at St. Mary's Hospital in London. He noticed that a Penicillium mold had contaminated a petri dish and was killing the surrounding Staphylococcus bacteria. Howard Florey and Ernst Boris Chain later developed it into a practical antibiotic in the early 1940s.",
+        "actual": "Penicillin was discovered by Alexander Fleming in 1928 at St. Mary's Hospital in London, when he observed that a mold called Penicillium notatum was killing bacteria in a petri dish. Louis Pasteur and Robert Koch then developed it into a usable drug during World War II.",
+        "human_verdict": "partially_correct",
+        "human_f1_range": [0.35, 0.55],
+        "notes": "Discovery details right but swaps Florey/Chain with Pasteur/Koch (both died before penicillin).",
+    },
+    {
+        "id": "entity_confusion_03",
+        "category": "entity_confusion",
+        "difficulty": "medium",
+        "query": "What is the longest river in the world?",
+        "expected": "The Nile River is generally considered the longest river in the world at approximately 6,650 km (4,130 miles), flowing through northeastern Africa. Some measurements suggest the Amazon River might be longer.",
+        "actual": "The Amazon River is the longest river in the world at approximately 6,400 km. It flows through South America and carries the most water of any river.",
+        "human_verdict": "partially_correct",
+        "human_f1_range": [0.2, 0.45],
+        "notes": "Asserts Amazon instead of Nile, but expected acknowledges ambiguity. Tests contested facts.",
+    },
+    # =========================================================================
+    # VERBOSITY BIAS (cases 26-28)
+    # =========================================================================
+    {
+        "id": "verbosity_01",
+        "category": "verbosity_bias",
+        "difficulty": "medium",
+        "query": "What is the Pythagorean theorem?",
+        "expected": "The Pythagorean theorem states that in a right triangle, the square of the hypotenuse equals the sum of the squares of the other two sides: a^2 + b^2 = c^2.",
+        "actual": "The Pythagorean theorem is one of the most fundamental results in all of mathematics, with a rich history dating back thousands of years to ancient civilizations. Named after the Greek philosopher and mathematician Pythagoras of Samos (c. 570-495 BC), though it was likely known to Babylonian mathematicians long before, the theorem establishes a profound relationship between the sides of a right-angled triangle. Specifically, it states that for any right triangle with legs of length a and b and hypotenuse of length c, the following equation holds: a squared plus b squared equals c squared (a^2 + b^2 = c^2). This means that if you construct a square on each side of a right triangle, the area of the largest square will exactly equal the combined areas of the two smaller squares. The theorem has over 300 known proofs, including one by President James Garfield.",
+        "human_verdict": "correct",
+        "human_f1_range": [0.85, 1.0],
+        "notes": "10x longer but contains all expected info. Tests verbosity bias.",
+    },
+    {
+        "id": "verbosity_02",
+        "category": "verbosity_bias",
+        "difficulty": "medium",
+        "query": "What is photovoltaic effect?",
+        "expected": "The photovoltaic effect is a process where a voltage or electric current is generated in a photovoltaic cell when it is exposed to sunlight. When photons hit a semiconductor material (typically silicon), they knock electrons loose from their atoms. The separation of these charge carriers creates a voltage difference that can drive an electric current through an external circuit. This is the fundamental principle behind solar panels.",
+        "actual": "It converts light into electricity using semiconductors.",
+        "human_verdict": "partially_correct",
+        "human_f1_range": [0.2, 0.4],
+        "notes": "Extremely terse. Captures only highest-level concept. Low recall.",
+    },
+    {
+        "id": "verbosity_03",
+        "category": "verbosity_bias",
+        "difficulty": "hard",
+        "query": "Explain the difference between TCP and UDP.",
+        "expected": "TCP (Transmission Control Protocol) is connection-oriented, reliable, and guarantees in-order delivery of data through acknowledgments and retransmission. UDP (User Datagram Protocol) is connectionless, unreliable, and does not guarantee delivery or ordering. TCP has higher overhead due to its reliability mechanisms. UDP is faster and used for real-time applications like video streaming and gaming. Both operate at the transport layer of the OSI model.",
+        "actual": "TCP and UDP are both transport layer protocols. TCP is connection-oriented and reliable -- it establishes a connection using a three-way handshake (SYN, SYN-ACK, ACK), numbers all packets for ordering, and retransmits lost packets. It uses flow control with sliding windows and congestion control algorithms like TCP Reno and CUBIC. This makes it suitable for web browsing, email, and file transfers. UDP is connectionless and unreliable -- it just sends datagrams without establishing a connection, with no acknowledgments, retransmission, or ordering guarantees. Its minimal 8-byte header makes it much faster than TCP's 20+ byte header. UDP is ideal for real-time applications like VoIP, online gaming, DNS lookups, and video streaming where low latency matters more than perfect reliability. Some modern protocols like QUIC build reliability on top of UDP to get the best of both worlds.",
+        "human_verdict": "correct",
+        "human_f1_range": [0.85, 1.0],
+        "notes": "Longer and more detailed but covers every expected claim.",
+    },
+    # =========================================================================
+    # NEGATION ERRORS (cases 29-30)
+    # =========================================================================
+    {
+        "id": "negation_01",
+        "category": "negation_errors",
+        "difficulty": "hard",
+        "query": "Is glass a liquid or a solid?",
+        "expected": "Glass is an amorphous solid, not a liquid. The common myth that glass flows over time (evidenced by old windows being thicker at the bottom) is false -- the thickness variations are due to the manufacturing process. Glass does not flow at room temperature on any observable timescale.",
+        "actual": "Glass is technically a supercooled liquid, not a true solid. This is why old cathedral windows are thicker at the bottom -- the glass has slowly flowed downward over centuries due to gravity. While it appears solid, glass is actually in a very slow liquid state.",
+        "human_verdict": "incorrect",
+        "human_f1_range": [0.0, 0.15],
+        "notes": "Direct negation: expected says solid/myth false, actual says liquid/myth true.",
+    },
+    {
+        "id": "negation_02",
+        "category": "negation_errors",
+        "difficulty": "hard",
+        "query": "Is the Great Wall of China visible from space?",
+        "expected": "The Great Wall of China is not visible from space with the naked eye. This is a common misconception. While the wall is very long (over 21,000 km), it is only about 5-8 meters wide, which is too narrow to be seen from orbit without aid. Several astronauts, including Yang Liwei, have confirmed they could not see it from space.",
+        "actual": "Yes, the Great Wall of China is visible from space. It is one of the few man-made structures that can be seen from orbit because of its immense length of over 21,000 km. The wall stretches across northern China and its width of 5-8 meters is sufficient to be spotted from low Earth orbit.",
+        "human_verdict": "incorrect",
+        "human_f1_range": [0.1, 0.25],
+        "notes": "Gets dimensions right but negates central conclusion. Shared facts but opposite answer.",
+    },
+]
+
+
+def get_cases_by_category(category: str) -> list:
+    return [c for c in BENCHMARK_CASES if c["category"] == category]
+
+
+def get_cases_by_difficulty(difficulty: str) -> list:
+    return [c for c in BENCHMARK_CASES if c["difficulty"] == difficulty]
