@@ -145,6 +145,174 @@ vital_judge = VitalCorrectnessJudge(config=config)
 | `CORRECTNESS_JUDGE_MODEL` | str | Default model used for evaluation |
 | `aggregate_scores()` | static method | Aggregate multiple CorrectnessScore results |
 
+## Meta-Evaluation
+
+The `meta_eval/` module provides a framework for evaluating the judge itself (meta-evaluation) against a human-labeled benchmark. It measures agreement with human judgments, calibration, and bias across multiple judge configurations.
+
+### Benchmark
+
+30 hand-labeled test cases across 9 failure-mode categories:
+
+| Category | Cases | What it tests |
+|---|---|---|
+| `easy_correct` | 4 | Rephrasing, extra info, numerical equivalence |
+| `easy_incorrect` | 3 | Wrong facts, confused events, wrong language behavior |
+| `hard_partially_correct` | 5 | Missing precision, subtle technical errors |
+| `hallucination_detection` | 4 | False claims in correct context, trap cases |
+| `missing_information` | 3 | Omitted details at varying severity |
+| `numerical_precision` | 3 | Rounding tolerance, wrong-substance values |
+| `entity_confusion` | 3 | Swapped names, anachronistic attributions |
+| `verbosity_bias` | 3 | Verbose-but-correct vs. terse-but-incomplete |
+| `negation_errors` | 2 | Central claim negated with supporting facts intact |
+
+Each case includes a human verdict (`correct` / `partially_correct` / `incorrect`) and an expected F1 range calibrated to the scoring thresholds.
+
+### Metrics
+
+| Metric | What it measures |
+|---|---|
+| Verdict accuracy | Exact match between judge and human verdicts |
+| F1-in-range accuracy | Judge F1 falls within human-labeled range |
+| Cohen's kappa | Chance-corrected inter-rater agreement |
+| Mean F1 error | Average distance between judge F1 and expected midpoint |
+| False positive rate | Incorrect cases judged as correct |
+| False negative rate | Correct cases judged as incorrect |
+| Hallucination trap | Whether true additional info is wrongly flagged |
+
+Results are broken down by category and difficulty, with a full 3x3 confusion matrix.
+
+### Running
+
+```bash
+# Full comparison: 6 internal configurations x 30 cases
+python -m meta_eval.run
+
+# Quick smoke test (3 cases)
+python -m meta_eval.run --quick
+
+# Specific configurations only
+python -m meta_eval.run --variants baseline,cot+dedup+shuffle,vital
+
+# Test with a different model
+python -m meta_eval.run --model openai/gpt-4o
+
+# Test specific failure modes
+python -m meta_eval.run --categories negation_errors,hallucination_detection
+
+# Save results to JSON
+python -m meta_eval.run --output results.json
+```
+
+### Internal Configurations
+
+| Name | Mode | Config |
+|---|---|---|
+| `baseline` | `long_form` | Default |
+| `cot` | `long_form` | CoT extraction |
+| `cot+dedup` | `long_form` | CoT + deduplication |
+| `cot+dedup+shuffle` | `long_form` | CoT + dedup + position bias mitigation |
+| `simple` | `simple` | Single-prompt evaluation |
+| `vital` | `vital` | Importance-weighted evaluation |
+
+### Comparing with External Judges
+
+The meta-evaluation can compare correctness-judge head-to-head with other LLM-as-judge libraries on the same benchmark, using the same metrics.
+
+**Supported external judges:**
+
+| Adapter | Library | Install | Evaluation approach |
+|---|---|---|---|
+| `ragas` | [RAGAS](https://docs.ragas.io/) | `pip install ragas` | Claim-decomposition F1 (FactualCorrectness) |
+| `deepeval` | [DeepEval](https://docs.confident-ai.com/) | `pip install deepeval` | G-Eval with CoT and custom criteria |
+| `openevals` | [OpenEvals](https://github.com/langchain-ai/openevals) | `pip install openevals` | LLM-as-judge with CORRECTNESS_PROMPT |
+
+```bash
+# List which external judges are installed
+python -m meta_eval.run --list-external
+
+# Compare internal baseline against RAGAS and DeepEval
+python -m meta_eval.run --variants baseline --external ragas,deepeval
+
+# Run all installed external judges
+python -m meta_eval.run --variants baseline,cot+dedup+shuffle --external all
+
+# External judges only (skip internal variants)
+python -m meta_eval.run --variants none --external ragas,deepeval,openevals
+
+# Override the model used by external adapters
+python -m meta_eval.run --variants baseline --external ragas,deepeval --external-model gpt-4o
+```
+
+**Writing a custom adapter:**
+
+```python
+from meta_eval.adapters import ExternalJudgeAdapter, AdapterResult
+
+class MyJudgeAdapter(ExternalJudgeAdapter):
+    name = "my_judge"
+
+    @staticmethod
+    def _check_import():
+        import my_judge_library  # will be called to check availability
+
+    async def evaluate(self, query: str, expected: str, actual: str) -> AdapterResult:
+        # Call your judge here
+        score = await my_judge_library.evaluate(query, expected, actual)
+        return AdapterResult(
+            verdict="correct" if score > 0.8 else "partially_correct" if score > 0.4 else "incorrect",
+            score=score,
+            reason="...",
+        )
+```
+
+### Public Benchmark Datasets
+
+In addition to the hand-labeled benchmark, the meta-evaluation framework can load established public datasets from HuggingFace for large-scale comparison.
+
+**Requires:** `pip install datasets`
+
+| Dataset | Source | Cases | What it tests |
+|---|---|---|---|
+| `judgebench` | [ScalerLab/JudgeBench](https://huggingface.co/datasets/ScalerLab/JudgeBench) | 620 | Objective correctness across knowledge, reasoning, math, coding |
+| `llmbar` | [princeton-nlp/LLMBar](https://huggingface.co/datasets/princeton-nlp/LLMBar) | 419 | Instruction-following faithfulness (natural + adversarial) |
+| `rewardbench` | [allenai/reward-bench](https://huggingface.co/datasets/allenai/reward-bench) | 2,985 | Chat, reasoning, and safety preference pairs |
+| `mtbench` | [lmsys/mt_bench_human_judgments](https://huggingface.co/datasets/lmsys/mt_bench_human_judgments) | 3,355 | Multi-turn conversation human pairwise judgments |
+
+Each dataset is automatically downloaded from HuggingFace and adapted from pairwise preference format (response A vs B) into the correctness evaluation format (query, expected, actual with verdict).
+
+```bash
+# List available datasets
+python -m meta_eval.run_benchmarks --list-datasets
+
+# Quick test: 30 LLMBar cases with internal baseline
+python -m meta_eval.run_benchmarks --datasets llmbar --max-cases 30
+
+# Compare judges on multiple datasets
+python -m meta_eval.run_benchmarks --datasets llmbar,rewardbench \
+    --variants baseline,cot+dedup+shuffle \
+    --external ragas,deepeval \
+    --max-cases 100
+
+# Full evaluation on all datasets
+python -m meta_eval.run_benchmarks --datasets all \
+    --variants baseline,simple,vital \
+    --external all \
+    --max-cases 50 \
+    --output benchmark_results.json
+
+# External judges only
+python -m meta_eval.run_benchmarks --datasets llmbar \
+    --variants none --external ragas,deepeval,openevals,vanilla_llm
+
+# Override models
+python -m meta_eval.run_benchmarks --datasets llmbar \
+    --model anthropic/claude-sonnet-4-20250514 \
+    --external-model gpt-4o-mini \
+    --max-cases 30
+```
+
+The output includes a ranked comparison table with verdict accuracy, Cohen's kappa, and F1 error for each judge, broken down by category and difficulty.
+
 ## References
 
 - VITAL framework: [arXiv:2510.07083](https://arxiv.org/abs/2510.07083)
@@ -154,6 +322,10 @@ vital_judge = VitalCorrectnessJudge(config=config)
 - D-FActScore entity disambiguation: [arXiv:2402.05629](https://arxiv.org/abs/2402.05629)
 - QuanTemp++ numerical fact-checking: [arXiv:2510.22055](https://arxiv.org/abs/2510.22055)
 - DecMetrics claim decomposition: [arXiv:2509.04483](https://arxiv.org/abs/2509.04483)
+- JudgeBench: [arXiv:2410.12784](https://arxiv.org/abs/2410.12784)
+- LLMBar: [arXiv:2310.07641](https://arxiv.org/abs/2310.07641)
+- RewardBench: [arXiv:2403.13787](https://arxiv.org/abs/2403.13787)
+- MT-Bench: [arXiv:2306.05685](https://arxiv.org/abs/2306.05685)
 
 ## License
 
